@@ -1,4 +1,4 @@
-# Project2_SDM2 - Daily Oil Price Time Series Analysis
+# Daily Oil Price Time Series Analysis
 
 ## Authors
 - Abhigna Tanguturi
