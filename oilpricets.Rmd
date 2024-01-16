@@ -1,0 +1,400 @@
+---
+title: "Project2_SDM2"
+author: Abhigna Tanguturi, Mahendra Reddy Gopu, Mantri Pragada Venkata Sesha Aditya,
+  Subbarao Koduri
+date: "2023-05-06"
+output:
+  word_document: default
+  html_document: default
+---
+# Importing required Libraries
+```{r}
+library(tidyverse)
+library(zoo)
+library(forecast)
+library(ggplot2)
+```
+# 1. Loading the Dataset
+```{r}
+oil_data <- read.csv("oil.csv")
+oil_data$date <- as.Date(oil_data$date)
+```
+
+```{r}
+head(oil_data,10)
+```
+
+```{r}
+sum(is.na(oil_data$dcoilwtico))
+```
+
+# 2. Plotting the time series as is
+```{r}
+ggplot(oil_data, aes(x = date, y = dcoilwtico)) +
+  geom_line() +
+  labs(x = "Date", y = "Price", title = "Daily Oil Price Time Series plot")
+```
+
+# 3 Filling the missing data
+
+# A statistical technique called interpolation uses the observed values before and after the missing value to approximate the missing values in a time series. When the time series is thought to be smooth and continuous and missing values are anticipated to be few and dispersed, interpolation may be applied. A function in R called na.interpolation() offers many interpolation choices. By defining the kind of interpolation to be used, the R function na.interpolation() can be used to fill in missing values in a time series object. In R, you may perform a variety of interpolation operations, including linear, spline, and polynomial interpolation.
+
+# The na_interpolation() function is a straightforward way to linearly interpolate between neighboring values to fill in missing data in a time series. The function estimates the missing values from the surrounding values and replaces them. So, the prefered method that we have used is interpolation.
+
+# A straight line is used to link the observed data points in a procedure called linear interpolation. It is predicated on the idea that values fluctuate linearly between two observed data points. A technique called spline interpolation interpolates the missing values using a piecewise polynomial function. A technique called polynomial interpolation interpolates the missing values by using a single polynomial function. R's na.interpolation() function offers a number of options for defining the interpolation type to be applied. 
+# One of the following values may be used as the option argument:
+
+# "constant": Substitute a constant value for any missing values.
+# "linear": Use linear interpolation to fill in missing values.
+# Fill up missing values using spline interpolation, or "spline".
+# "polynomial": Interpolate values using polynomials to fill in missing values.
+
+```{r}
+library(imputeTS)
+oil_data$dcoilwtico <- na_interpolation(oil_data$dcoilwtico)
+```
+
+```{r}
+sum(is.na(oil_data$dcoilwtico))
+```
+# 4.Plotting the time series with imputed data
+```{r}
+ggplot(oil_data, aes(x = date, y = dcoilwtico)) +
+  geom_line() +
+  labs(x = "Date", y = "Price", title = "Daily Oil Price Time Series plot")
+```
+# The time series plot of the data with no missing values is shown in the graph above.The plot shows that there is not identifiable seasonality and a downward trend. We employ the various strategies listed below to provide more value to our assertion.
+
+
+```{r}
+library(xts)
+
+```
+
+
+```{r}
+# Convert the data frame to xts object
+da <- xts(oil_data$dcoilwtico, order.by = as.Date(oil_data$date))
+# Calculate weekly, biweekly, monthly, bimonthly, quarterly, half-yearly, and yearly averages
+dailyavg <- apply.daily(da, mean)
+weeklyavg <- apply.weekly(da, mean)
+monthlyavg <- apply.monthly(da, mean)
+quarterlyavg <- apply.quarterly(da, mean)
+yearlyavg <- apply.yearly(da, mean)
+```
+
+
+```{r}
+# Plot the time series graphs
+plot(dailyavg, main = "Daily Average price of oil", xlab = "Date", ylab = "Average Price")
+```
+
+
+
+```{r}
+plot(weeklyavg, main = "Weekly Average price of oil", xlab = "Date", ylab = "Average Price")
+
+```
+
+
+
+```{r}
+plot(monthlyavg, main = "Monthly Average price of oil", xlab = "Date", ylab = "Average Price")
+```
+
+
+
+```{r}
+plot(quarterlyavg, main = "Quarterly Average price of oil", xlab = "Date", ylab = "Average Price")
+
+```
+
+
+
+```{r}
+plot(yearlyavg, main = "Yearly Average price of oil", xlab = "Date", ylab = "Average Price")
+```
+
+
+
+```{r}
+par(mfrow=c(1,2))
+acf(da, main="ACF")
+pacf(da, main="PACF")
+```
+
+
+
+```{r}
+library(forecast)
+oil_data$date <- as.Date(oil_data$date)
+oil_data_ts <- ts(oil_data$dcoilwtico, frequency = 365)
+ts_decompose <- decompose(oil_data_ts)
+autoplot(ts_decompose, facet = TRUE) + ggtitle("Trend,Seasonality,cyclicality and resuduals of Time Series")
+
+```
+# In the plot above, we can see that prices continued to be over 90 until the middle of 2014. Following that, the cost began to gradually drop, eventually halving between the years 2013 and 2015 to reach its lowest point. The trend since 2015 reveals that neither the price nor the value have risen above 60. The highest price was reportedly recorded for the entire period at the end of 2014.Early 2016 had the record-lowest pricing. 
+
+# we can see that there is no signinficant seasonality in the plotted time series graph but there is a decreasing trend in the plot.
+
+# Time series plot 
+```{r}
+library(ggplot2)
+autoplot(oil_data_ts)
+```
+
+
+# 5 ETS models and about Holt-Winters models 
+
+# Summary 
+# Two well-known time series forecasting models that can be used to identify various patterns in the data are ETS (Error, Trend, Seasonality) and Holt-Winters models. Here are some pertinent details about each model: Using ETS models, a time series is divided into three parts: error (E), trend (T), and seasonality (S). The data irrational fluctuations that the trend and seasonality cannot account for are represented by the error component. Both additive (fixed rate of change over time) and multiplicative (rate of change increases or decreases with time) trends can be used to describe the trend component, which reflects the general direction of the data.
+
+# The seasonality component, which can be additive or multiplicative (where the magnitude of fluctuations varies throughout the data), represents periodic oscillations in the data.
+
+# Three parameters define ETS models:
+
+# Error (E), which can be "additive" or "multiplicative,"
+# Trend (T), which can be "none," "additive," or "multiplicative," and
+# Seasonal (S), which can be "none," "additive," or "multiplicative"
+
+
+# Holt-Winters models explicitly models the seasonality component of the data. The Holt-Winters models come in both additive and multiplicative forms. In contrast to the multiplicative version, which assumes that the seasonality component's magnitude changes over time, the additive version makes the assumption that the seasonality component's magnitude is constant across the data.
+
+# There are three parameters that define Holt-Winters models:
+
+# Alpha, a smoothing parameter for the level, influences how quickly the model adjusts to new observations.
+# beta, a smoothing factor for the slope, regulates how quickly the model responds to changes in the trend.
+# Gamma, the smoothing parameter for the seasonal component, regulates how quickly the model adjusts to changes in seasonality.
+# HoltWinters(alpha, beta, gamma, seasonal = c("additive", "multiplicative") is the name given to the final model.
+
+#ETS Models
+
+
+```{r}
+ab <- xts(oil_data$dcoilwtico, order.by = as.Date(oil_data$date))
+traindata <- window(ab, end = as.Date("2016-10-30"))
+testdata <- window(ab,start=as.Date("2016-11-01"))
+traindata <- ts(traindata, frequency=12)
+testdata <- ts(testdata, frequency=12)
+```
+
+
+# AAN model
+
+```{r}
+AANmod <- ets(traindata,model = 'AAN')
+checkresiduals(AANmod)
+```
+
+```{r}
+AANforecast <- forecast(AANmod, h = 50)
+AANestpf <- AANforecast$mean
+AANestp_ts <- ts(AANestpf, frequency = 12)
+accuracy(AANestp_ts, testdata)
+
+```
+
+# ANN model
+
+```{r}
+library(forecast)
+ANNets <- ets(traindata, model = 'ANN')
+checkresiduals(ANNets)
+```
+
+```{r}
+ANNforecast <- forecast(ANNets,h=50)
+estpf_ann <- ANNforecast$mean
+ANNforecast_ts <- ts(estpf_ann,frequency=12)
+accuracy(ANNforecast_ts,testdata)
+
+```
+
+# MAN model
+
+```{r}
+MANets <- ets(traindata, model = 'MAN')
+checkresiduals(MANets)
+```
+
+
+```{r}
+MANforecast <- forecast(MANets, h = 50)
+estpf_man <- MANforecast$mean
+MANforecast_ts <- ts(estpf_man, frequency = 12)
+accuracy(MANforecast_ts, testdata)
+
+```
+
+# Holts-Winter models
+
+# Holts-Winter additive model
+
+```{r}
+HWadditive <- hw(traindata,seasonal="additive")
+checkresiduals(HWadditive)
+```
+
+
+```{r}
+plot.ts(traindata,main = "Smoothed Timeseries of oil Sales", col = "blue")
+lines(fitted(HWadditive),col = "red")
+```
+
+```{r}
+forecast_HWadditive <- forecast(HWadditive,h=12)
+forecast_HWadditive
+
+```
+
+```{r}
+hw_mean_add <- forecast_HWadditive$mean
+hw_forecast_HWadditive <- ts(hw_mean_add,frequency=12)
+hw_forecast_HWadditive
+```
+
+```{r}
+accuracy(hw_forecast_HWadditive, testdata)
+```
+
+```{r}
+summary(HWadditive)
+```
+
+
+# Holts-Winter multiplicative model
+
+```{r}
+HWmultiplicative <- hw(traindata,seasonal="multiplicative")
+checkresiduals(HWmultiplicative)
+```
+
+```{r}
+plot.ts(traindata,main = "Smoothed Timeseries of oil Sales", col = "green")
+lines(fitted(HWmultiplicative),col = "red")
+
+```
+
+```{r}
+forecast_HWmultiplicative <- forecast(HWmultiplicative,h=12)
+forecast_HWmultiplicative
+```
+
+
+```{r}
+hw_mean_mult <- forecast_HWmultiplicative$mean
+hw_forecast_HWmultiplicative <- ts(hw_mean_mult,frequency=12)
+hw_forecast_HWmultiplicative
+
+```
+
+
+```{r}
+accuracy(hw_forecast_HWmultiplicative, testdata)
+
+```
+
+
+```{r}
+summary(HWmultiplicative)
+```
+
+
+```{r}
+hw_dam <- hw(traindata, seasonal="additive", damped=TRUE, phi=0.8)
+checkresiduals(HWadditive)
+```
+
+
+```{r}
+plot.ts(traindata, main="Smoothed Timeseries of oil Sales", col="blue")
+lines(fitted(hw_dam), col="red")
+
+```
+# Holts-Winter damped additive model
+
+```{r}
+forecast_hw_dam <- forecast(hw_dam, h=12)
+forecast_hw_dam
+
+```
+
+```{r}
+hw_mean_dam <- forecast_hw_dam$mean
+hw_forecast_hw_dam <- ts(hw_mean_dam, frequency=12)
+hw_forecast_hw_dam
+
+```
+
+
+```{r}
+accuracy(hw_forecast_hw_dam, testdata)
+
+```
+
+
+```{r}
+summary(hw_dam)
+```
+
+# Damped Holts-Winter multiplicative model
+
+```{r}
+HWmultiplicative_damped <- hw(traindata, seasonal = "multiplicative", damped = TRUE, phi = 0.8)
+checkresiduals(HWmultiplicative_damped)
+```
+
+```{r}
+plot.ts(traindata, main = "Smoothed Timeseries of oil Sales", col = "blue")
+lines(fitted(HWmultiplicative_damped), col = "red")
+
+```
+
+```{r}
+forecast_HWmultiplicative_damped <- forecast(HWmultiplicative_damped, h = 12)
+forecast_HWmultiplicative_damped
+```
+
+```{r}
+hw_mean_mult_damped <- forecast_HWmultiplicative_damped$mean
+hw_forecast_HWmultiplicative_damped <- ts(hw_mean_mult_damped, frequency = 12)
+accuracy(hw_forecast_HWmultiplicative_damped, testdata)
+
+```
+
+
+```{r}
+summary(HWmultiplicative_damped)
+```
+
+
+
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
